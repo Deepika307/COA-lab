@@ -1,62 +1,65 @@
 org 100h
 
-start:
+; Initialize values
+mov al,96h        ; Move 89h (137 in decimal) into AL
+mov bl,10h        ; Move 10h (16 in decimal) into BL
 
-    ; Set data segment to code segment
-    mov ax, cs
-    mov ds, ax
+; Perform division (AL / BL)
+idiv bl           ; AL = quotient, AH = remainder
+mov bl,al         ; Store quotient in BL
+mov bh,ah         ; Store remainder in BH
 
-    ; Initialize dividend and divisor
-    mov al, [dividend]  
-    mov bl, [divisor]   
+; Convert first digit (quotient) to ASCII
+and al,0f0h       ; Mask higher nibble of AL
+shr al,4          ; Shift right 4 bits to get the first hex digit
+add al,30h        ; Convert to ASCII (0-9)
+cmp al,39h        ; Check if it's a number or letter (0-9)
+jle print_first_digit1
+add al,7          ; Convert to ASCII (A-F)
 
-    xor ah, ah          ; Clear upper half of AX for division
+print_first_digit1:
+    mov dl,al     ; Move the result to DL (for printing)
+    mov ah,02h    ; Print function
+    int 21h       ; Interrupt to print the character
 
-    div bl              ; AL / BL -> quotient in AL, remainder in AH
+; Convert second digit (quotient) to ASCII
+mov al,bl         ; Move the quotient back into AL
+and al,0fh        ; Mask the lower nibble of AL
+add al,30h        ; Convert to ASCII (0-9)
+cmp al,39h        ; Check if it's a number or letter (0-9)
+jle print_second_digit1
+add al,7          ; Convert to ASCII (A-F)
 
-    mov [quotient], al  ; Store quotient
-    mov [remainder], ah ; Store remainder
+print_second_digit1:
+    mov dl,al     ; Move the result to DL (for printing)
+    mov ah,02h    ; Print function
+    int 21h       ; Interrupt to print the character
 
-    ; Display "Quotient: "
-    mov dx, offset msg_quotient
-    mov ah, 09h         
-    int 21h             
+; Print remainder (remainder is in BH)
 
-    ; Display the quotient
-    mov al, [quotient]
-    add al, '0'         ; Convert to ASCII
-    mov dl, al
-    mov ah, 02h         
-    int 21h             
+; Convert first digit (upper nibble of remainder) to ASCII
+mov al,bh         ; Move remainder into AL
+and al,0f0h       ; Mask the higher nibble
+shr al,4          ; Shift right 4 bits to get the first hex digit
+add al,30h        ; Convert to ASCII (0-9)
+cmp al,39h        ; Check if it's a number or letter (0-9)
+jle print_first_rem_digit
+add al,7          ; Convert to ASCII (A-F)
 
-    ; Print a newline
-    mov dl, 0Dh         ; Carriage return
-    int 21h
-    mov dl, 0Ah         ; Line feed
-    int 21h
+print_first_rem_digit:
+    mov dl,al     ; Move the result to DL (for printing)
+    mov ah,02h    ; Print function
+    int 21h       ; Interrupt to print the character
 
-    ; Display "Remainder: "
-    mov dx, offset msg_remainder
-    mov ah, 09h         
-    int 21h             
+; Convert second digit (lower nibble of remainder) to ASCII
+mov al,bh         ; Move remainder back into AL
+and al,0fh        ; Mask the lower nibble
+add al,30h        ; Convert to ASCII (0-9)
+cmp al,39h        ; Check if it's a number or letter (0-9)
+jle print_second_rem_digit
+add al,7          ; Convert to ASCII (A-F)
 
-    ; Display the remainder
-    mov al, [remainder]
-    add al, '0'         ; Convert to ASCII
-    mov dl, al
-    mov ah, 02h         
-    int 21h             
-
-    ; Exit the program
-    mov ah, 4Ch
-    int 21h
-
-; Data Section
-dividend  db 58        ; Dividend value
-divisor   db 07        ; Divisor value
-quotient  db 0         ; Placeholder for quotient
-remainder db 0         ; Placeholder for remainder
-
-; Messages
-msg_quotient db "Quotient: $"
-msg_remainder db "Remainder: $"
+print_second_rem_digit:
+    mov dl,al     ; Move the result to DL (for printing)
+    mov ah,02h    ; Print function
+    int 21h       ; Interrupt to print the character
